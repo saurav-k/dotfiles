@@ -36,7 +36,6 @@
     onActivation.extraFlags = [ "--force" ];
     brews = [
       "herdr"
-      "azure-cli"
       # version managers; home.nix installs the pinned toolchains with them
       "pyenv"
       "fnm"
@@ -55,6 +54,7 @@
     casks = [
       "wezterm"
       "claude-code"
+      "azure-cli"
     ];
   };
 }
