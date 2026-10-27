@@ -1,7 +1,19 @@
-{ config, pkgs, user, ... }:
+{ config, lib, pkgs, user, ... }:
 
 let
   dotfiles = "${config.home.homeDirectory}/.dotfiles";
+
+  # Language toolchains live in their own version managers, not Nix.
+  # Bump a version here and run ./rebuild.sh to install it and make it the default.
+  goVersion = "go1.27.3";
+  pythonVersion = "3.15.2";
+  nodeVersion = "24.22.1";
+  rustToolchain = "stable";
+  gvmRev = "dd652539fa4b771840846f8319fad303c7d0a8d2";
+  gvmInstaller = pkgs.fetchurl {
+    url = "https://raw.githubusercontent.com/moovweb/gvm/${gvmRev}/binscripts/gvm-installer";
+    hash = "sha256-RVU/4/PP8/d2annzovSpYs9iPJhNO5YFdKmrlSStGQU=";
+  };
 in
 
 {
@@ -21,6 +33,8 @@ in
   ];
   fonts.fontconfig.enable = true;
   home.sessionVariables.EDITOR = "nvim";
+  # rustup is keg-only in Homebrew; cargo installs binaries into ~/.cargo/bin
+  home.sessionPath = [ "/opt/homebrew/opt/rustup/bin" "$HOME/.cargo/bin" ];
 
   programs.zsh = {
     enable = true;
@@ -28,6 +42,10 @@ in
     syntaxHighlighting.enable = true;  # commands turn green when valid
     initContent = ''
       bindkey '^f' autosuggest-accept
+
+      eval "$(pyenv init - zsh)"
+      [[ -s "$HOME/.gvm/scripts/gvm" ]] && source "$HOME/.gvm/scripts/gvm"
+      eval "$(fnm env --use-on-cd --version-file-strategy=recursive --shell zsh)"
     '';
     shellAliases = {
       ".." = "cd ..";
@@ -52,6 +70,35 @@ in
       cmd_duration.format = "[$duration]($style) ";
     };
   };
+
+  # Installs the pinned toolchains with the version managers from configuration.nix.
+  # Homebrew activation runs before this, so the managers are already on disk.
+  home.activation.toolchains = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    export PATH="/opt/homebrew/bin:/opt/homebrew/opt/rustup/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
+
+    if [ ! -d "$HOME/.gvm" ]; then
+      run env GVM_NO_UPDATE_PROFILE=1 bash ${gvmInstaller} ${gvmRev}
+    fi
+    if [ ! -d "$HOME/.gvm/gos/${goVersion}" ]; then
+      run bash -c 'source "$HOME/.gvm/scripts/gvm" && gvm install ${goVersion} -B'
+    fi
+    run bash -c 'source "$HOME/.gvm/scripts/gvm" && gvm use ${goVersion} --default >/dev/null'
+
+    if [ ! -d "$(pyenv root)/versions/${pythonVersion}" ]; then
+      run pyenv install ${pythonVersion}
+    fi
+    run pyenv global ${pythonVersion}
+
+    if ! fnm list | grep -q "v${nodeVersion}"; then
+      run fnm install ${nodeVersion}
+    fi
+    run fnm default ${nodeVersion}
+
+    if ! rustup toolchain list | grep -q "^${rustToolchain}-"; then
+      run rustup toolchain install ${rustToolchain} --profile default
+    fi
+    run rustup default ${rustToolchain}
+  '';
 
   # Edit-in-place: the real file stays in my repo, ~/.config just points at it.
   home.file.".config/wezterm".source =

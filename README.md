@@ -26,6 +26,7 @@ Running the switch builds:
 - System settings (dark mode, key repeat, dock, Finder, trackpad)
 - Homebrew apps (casks and CLI tools)
 - Nix user packages (ripgrep, fd, fzf, jq, lazygit, Neovim, Hack Nerd Font)
+- Language toolchains: Go via GVM, Python via pyenv, Node.js via fnm, Rust via rustup (versions pinned at the top of `home.nix`)
 - Shell (zsh, aliases, starship prompt)
 - Editor (Neovim config with the rose-pine moon theme)
 - Terminal (WezTerm config with the rose-pine moon theme and dimmed unfocused windows)
@@ -144,6 +145,13 @@ If you don't use it, just remove it from `brews` in your copy.
 The files under `home/` are the real files - editing them here is editing your live config, no rebuild needed to see the change in your editor.
 `home.nix` uses `mkOutOfStoreSymlink` to point paths like `~/.config/nvim` straight at `home/.config/nvim` in this repo, so the two never drift out of sync.
 You only run `./rebuild.sh` when you change something that isn't just a symlinked file, like a package list or a system default.
+
+## Language toolchains
+
+Homebrew installs the version managers (`pyenv`, `fnm`, `rustup`, plus CPython's build libraries); GVM comes from its upstream installer, pinned to a commit and hash in `home.nix`.
+A home-manager activation step then installs the versions pinned at the top of `home.nix` and makes them the defaults.
+To upgrade, bump a version there and run `./rebuild.sh`; already-installed versions are skipped, so rebuilds stay fast.
+The toolchains themselves live in `~/.gvm`, `~/.pyenv`, fnm's data directory, and `~/.rustup`, outside Nix.
 
 ## Optional Pi configuration
 

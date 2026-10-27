@@ -36,6 +36,21 @@
     onActivation.extraFlags = [ "--force" ];
     brews = [
       "herdr"
+      "azure-cli"
+      # version managers; home.nix installs the pinned toolchains with them
+      "pyenv"
+      "fnm"
+      "rustup"
+      # libraries pyenv links when building CPython
+      "openssl@3"
+      "readline"
+      "sqlite"
+      "xz"
+      "zlib"
+      "tcl-tk"
+      "libb2"
+      "zstd"
+      "pkgconf"
     ];
     casks = [
       "wezterm"
